@@ -1,0 +1,204 @@
+---
+title: "Home Credit Default Risk - EDA"
+author: "Leah Ekblad"
+date: "2024-09-15"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_location: left
+    toc_title: "Contents"
+execute:
+  include: true
+  eval: true    
+  warning: false
+  message: false
+---
+
+# Introduction
+
+## Business Problem
+- Home Credit Group faces challenges in providing loans to individuals with limited or no credit histories due to the lack of predictive models. The current predictive models are not fully utilizing the available telco and transactional data. This limits the ability to accurately assess clients' repayment capabilities and results in either over-rejecting or poorly tailored loan terms, reducing the chances of success. The target variable will be binary (repayment success or failure) and involve feature engineering from telco and transactional data, model training and evaluation to improve performance. This EDA notebook will provide a closer look at the business problem, data preparation, and exploratory research towards a solution.
+
+## Description of the Data
+- There are 10 csv files with a total of 346 columns available for exploration. The main two files we will be using for exploration is *application_{train|test}.csv* which is broken down into Train and Test data. For our EDA notebook, we have joined this data with *bureau.csv* to see all client's previous credit history provided by other financial institutions that were reported.
+
+## Initial Questions
+
+1. How well will the bureau data help predict the target variable within the test and train application data?
+2. Which variable is the strongest predictor?
+3. Is there a way to reduce the amount of data for more accurate predictions?
+4. Which method of removing missing variables will prove most beneficial? 
+5. Is Bureau data the best to join with our application data set?
+
+```{r setup, include=FALSE}
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+```
+
+```{r}
+#| include: false
+
+# Packages
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(caret)
+install.packages("janitor")
+library(janitor)
+install.packages("skimr")
+library(skimr)
+install.packages("summarytools")
+library(summarytools)
+
+# Data
+train <- read.csv("application_train.csv")
+train$TARGET <- as.factor(train$TARGET)
+test <- read.csv("application_test.csv")
+bureau <- read.csv("bureau.csv")
+```
+
+# Explore Target Variable
+
+```{r}
+# Check the distribution of the target variable
+table(train$TARGET)
+
+# Proportion
+prop_table_train <- prop.table(table(train$TARGET))
+print(round(prop_table_train,2))
+
+
+# Plot the distribution
+ggplot(train, aes(x = as.factor(TARGET))) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Distribution of Target Variable", x = "Default (0 = No, 1 = Yes)", y = "Count") 
+
+# Calculate accuracy for majority class classifier
+majority_class <- names(which.max(table(train$TARGET)))
+majority_class_accuracy <- max(prop.table(table(train$TARGET)))
+
+```
+> When taking a look at the distribution of the target variable it is very unbalanced. We observe that Default = No siginficantly outnumbers Default (282,686 vs 24,825). This can lead to challenges with predicting the minority class. However, the accuracy for predicting the majority class classifier is 92%. 
+
+# Join Data
+Joining application_{train|test}.csv with transactional data in bureau.csv to see all client's previous credit history provided by other financial institutions that were reported.
+
+```{r}
+# Joining train data with bureau data
+train_bureau_joined <- train %>%
+  left_join(bureau, by = "SK_ID_CURR")
+
+# Joining test data with bureau data
+test_bureau_joined <- test %>%
+  left_join(bureau, by = "SK_ID_CURR")
+
+```
+# Missing Data
+There are a high volume of columns and rows with missing data. By removing rows with missing values as well as columns with more than 50% missing value, the quality of the dataset increases and will enhance the performance of the predictive models.
+
+```{r}
+# Remove rows with any missing values
+train_bureau_joined_clean <- na.omit(train_bureau_joined)
+
+test_bureau_joined_clean <- na.omit(test_bureau_joined)
+
+# Drop columns with more than 50% missing values
+train_bureau_joined_clean <- train_bureau_joined %>%
+  select(where(~ mean(is.na(.)) < 0.5))
+
+test_bureau_joined_clean <- test_bureau_joined %>%
+  select(where(~ mean(is.na(.)) < 0.5))
+```
+
+# Exploration
+The skimr package in R has some great data exploration tools, and the janitor package has utilities that will simplify data cleaning.
+
+```{r}
+# Clean column names for the training data
+train_bureau_joined_clean <- train_bureau_joined_clean %>%
+  clean_names()
+
+# Skim Train Data
+skim(train_bureau_joined_clean)
+```
+
+# Relationship Between Target and Predictors
+
+```{r}
+# Identify Numeric and Categorical Predictors
+# Numeric
+numeric_predictors <- train_bureau_joined_clean %>%
+  select(where(is.numeric))
+
+# Categorical 
+categorical_predictors <- train_bureau_joined_clean %>%
+  select(where(is.factor))
+
+# Linear Regression Model for amt_credit_sum_debt and amt_credit_sum_overdue
+model <- lm(target ~ amt_credit_sum_debt + amt_credit_sum_overdue, data = train_bureau_joined_clean)
+model
+
+# Chi Squared Test for flag_own_car
+# Create a contingency table
+contingency_table <- table(train_bureau_joined_clean$flag_own_car, train_bureau_joined_clean$target)
+# Perform Chi-squared test
+chi_squared_test <- chisq.test(contingency_table)
+print(chi_squared_test)
+
+# Chi Squared Test for cnt_children
+# Create a contingency table
+contingency_table <- table(train_bureau_joined_clean$cnt_children, train_bureau_joined_clean$target)
+# Perform Chi-squared test
+chi_squared_test <- chisq.test(contingency_table)
+print(chi_squared_test)
+```
+> A linear regression model was generated that examines the relationship between the target variable (repayment success/failure) and the predictors amt_credit_sum_debt and amt_credit_sum_overdue. The coefficients for amt_credit_sum_debt and amt_credit_sum_overdue are bboth extremely small and will not be useful in predicting the model. However, for the Chi squared test for flag_own_car there is a chi squared value of 629.68 demonstating a statustically significant association. The Chi squared test for number of children produces an even higher value of 973.57 indicating an even stronger correlation.
+
+# Explore Joined Transactional Data
+
+```{r, echo=FALSE}
+# Visualizations
+# Compare credit type by default status
+ggplot(train_bureau_joined_clean, aes(x = credit_type, fill = factor(target))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Count of Credit Types by Default Status",
+       x = "Credit Type",
+       y = "Count") +
+  scale_fill_manual(values = c("red", "blue"), labels = c("No Default", "Default")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis text
+
+# Count the number of defaults for each credit type
+default_counts <- train_bureau_joined_clean %>%
+  group_by(credit_type) %>%
+  count()
+# Print the results
+print(default_counts)
+
+# Simple Predictive Modeling
+set.seed(123)  # For reproducibility
+train_index <- createDataPartition(train_bureau_joined_clean$target, p = 0.8, list = FALSE)
+train_data <- train_bureau_joined_clean[train_index, ]
+test_data <- test_bureau_joined_clean[-train_index, ]
+
+# Train a logistic regression model
+model <- glm(target ~ credit_type, data = train_data, family = "binomial")
+
+# Model summary
+summary(model)
+```
+> Upon examining the bar chart and the accompanying dataframe, it becomes evident that the majority of credit types are either consumer credit or credit cards, revealing an uneven distribution among the various categories. In the logistic regression model fitted using the glm function in R, the coefficient of 1.57 indicates that loans for the purchase of equipment are particularly sensitive to default risk. Conversely, the Interbank credit category shows a coefficient of -7.01, suggesting a substantial decrease in the odds of default. However, this finding warrants further investigation, as it stems from only a single instance of Interbank credit, making it a non-significant result.
+
+# Results
+
+> The exploratory data analysis (EDA) on Home Credit's default risk has provided valuable insights into the factors influencing loan repayment success. The analysis revealed a significant imbalance in the target variable, non-defaults (282,686) compared to defaults (24,825). This imbalance poses challenges for accurately predicting the minority class, though a simple majority class classifier could achieve an accuracy of 92%. By joining the application data with the bureau data, we enhanced our dataset's comprehensiveness, allowing for a better understanding of credit history. Cleaning the data by removing rows with missing values and columns improved the quality of the dataset and set a solid foundation for further analysis.The investigation into predictors revealed that certain variables showed promising relationships with the target variable, specifically flag_own_car and cnt_children. Although, the data comprehension analysis uncovered problems in terms of inconsistancies, missing values, and outliers. Overall, this EDA has demonstrated the importance of thorough data examination before predictive modeling. Further investigation is needed to expand on our initial findings. 
+
+
+
+
+
+
+
+
+
