@@ -2,9 +2,11 @@
 Predictive Model for Home Credit Loan Repayment Capability
 
 **Business Problem**
+
 Financial institutions and lenders often use a customer’s credit history to approve loans and set interest rates. Individuals who lack a traditional credit history are frequently denied loans or offered higher interest rates, despite their potential to repay loans. This creates a missed opportunity for both the borrower and the creditor. Home Credit seeks to solve this problem by using alternative data sources to better assess applicants' creditworthiness and reduce barriers to access.
 
 **Project Objective**
+
 The goal of this project is to develop a predictive model that can evaluate an individual’s loan repayment potential without relying on traditional credit scores. Specifically, the model will leverage alternative data, such as transactional data, to assess the likelihood that an applicant will successfully repay a loan without defaulting. This approach will allow Home Credit to:
 
 - Expand credit access to underserved individuals who lack a traditional credit history.
@@ -14,6 +16,7 @@ The goal of this project is to develop a predictive model that can evaluate an i
 A successful model will increase approval rates for creditworthy individuals, enabling Home Credit to grow its customer base responsibly while balancing risk and opportunity.
 
 **Solution to Business Problem**
+
 To solve the business problem, we used a supervised machine learning approach to build a model capable of predicting loan repayment success or failure. Key steps in our solution included:
 
 1. Data Preprocessing: Cleaning the data and handling missing values, ensuring that the dataset was ready for model training.
@@ -24,6 +27,7 @@ To solve the business problem, we used a supervised machine learning approach to
 The Random Forest model emerged as the most effective, with the highest AUC-ROC and F1-Score, indicating the best balance of accuracy and recall. Additionally, ensemble methods further improved the model’s performance by integrating predictions from multiple models and producing the highest Kaggle submission score.
 
 **Individual Contributions**
+
 - EDA
 - Modeling:
 1. Penalized Regression
@@ -31,6 +35,7 @@ The Random Forest model emerged as the most effective, with the highest AUC-ROC 
 3. Random Forest
 
 **Difficulties Encountered**
+
 During the project, we encountered several challenges:
 
 *Handling Missing Data:* The substantial amount of missing values in several features (such as OWN_CAR_AGE) required us to carefully consider the best way to handle missing values without introducing bias or distorting relationships in the data.
