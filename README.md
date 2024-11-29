@@ -25,7 +25,7 @@ The Random Forest model emerged as the most effective, with the highest AUC-ROC 
 
 **Individual Contributions**
 - EDA
-- Modeling
+- Modeling:
 1. Penalized Regression
 2. Naive Bayes
 3. Random Forest
