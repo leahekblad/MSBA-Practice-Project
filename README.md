@@ -20,7 +20,7 @@ To solve the business problem, we used a supervised machine learning approach to
 2. Feature Engineering: Creating new features based on transactional data, such as housing information and vehicle age, to improve model accuracy.
 3. Model Selection: We tested several machine learning algorithms
 4. Ensemble Methods: We combined predictions from multiple models to create an ensemble approach, improving model robustness by reducing variance and bias.
-5. 
+   
 The Random Forest model emerged as the most effective, with the highest AUC-ROC and F1-Score, indicating the best balance of accuracy and recall. Additionally, ensemble methods further improved the model’s performance by integrating predictions from multiple models and producing the highest Kaggle submission score.
 
 **Individual Contributions**
